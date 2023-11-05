@@ -37,4 +37,4 @@ values to the variables deined in **def.h**, we can activete a single write cycl
 2. "Source run_sim" to start simulation
 3. "Source run_clean" to clean up the simulation results
 
-You can use the .vcd waveform file to debug your design.
+You can use gtkwave and load the waveform file (*.vcd) to debug your design.
