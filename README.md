@@ -30,7 +30,7 @@ $ source ~/.bashrc
 values to the variables deined in **def.h**, we can activete a single write cycle through the Wishbond interface, directing it to the corresponding variable address along with the assigned value. Similarly, by retrieving the values of the variables, we can activate a single read cycle through the Wishbond interface, accessing the address. ~~By assigning values to the variables defined in defs.h, we can make the wishbond interface start a single write cycle to the address of that variable with the value assigning, and by retrieve the value of the variables defined in defs.h can make the wishbond interface start a single read cycle to the address of that variable.~~ Through the firmware code, we can achieve the action of setting up the process ip and transfer the required input data to the ip.
 
 4. (Extra) Testbench verification:
-> By assigning values to the upper 16 bits of reg_mprj_datal in counter_la_fir.c, data and be transferred and saw by the testbench. We can, for example, assign reg_mprj_datal with the output values acquired from the process ip to make the testbench able to verify the correctness of the answer.
+> By assigning values to the upper 16 bits of reg_mprj_datal in counter_la_fir.c, data can be transferred and saw by the testbench. We can, for example, assign reg_mprj_datal with the output values acquired from the process ip to make the testbench able to verify the correctness of the answer.
 
 ## Start Simulation
 1. Enter lab-caravel_fir/testbench/counter_la_fir/
