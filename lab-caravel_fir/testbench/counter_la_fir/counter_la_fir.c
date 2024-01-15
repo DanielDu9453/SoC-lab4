@@ -127,26 +127,17 @@ void main()
 		}
 	}
 */	
-	int* tmp = fir(1);
+	int* tmp = fir();
 
 	for (int i = 0; i < 64; i++) {
 		reg_mprj_datal = *(tmp + i) << 16;
 	}
 
-	int* tmp2 = fir(2);
+	int* tmp2 = fir();
 
 	for (int i = 0; i < 64; i++) {
 		reg_mprj_datal = *(tmp2 + i) << 16;
 	}
-
-	int *tmp3 = fir(3);
-
-	for (int i = 0; i < 64; i++) {
-		reg_mprj_datal = *(tmp3 + i) << 16;
-	}
-
-	//print("\n");
-	//print("Monitor: Test 1 Passed\n\n");	// Makes simulation very long!
 	reg_mprj_datal = 0xAB510000;
 }
 

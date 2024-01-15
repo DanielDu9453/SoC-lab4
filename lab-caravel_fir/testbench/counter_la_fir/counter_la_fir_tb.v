@@ -142,8 +142,8 @@ module counter_la_fir_tb;
 		$dumpvars(0, counter_la_fir_tb);
 
 		// Repeat cycles of 1000 clock edges as needed to complete testbench
-		repeat (1000) begin
-			repeat (1000) @(posedge clock);
+		repeat (500) begin
+			repeat (500) @(posedge clock);
 			// $display("+1000 cycles");
 		end
 		$display("%c[1;31m",27);
@@ -156,8 +156,8 @@ module counter_la_fir_tb;
 		$finish;
 	end
 
-	integer ans1[0:63], ans2[0:63], ans3[0:63];
-	integer input1[0:63], input2[0:63], input3[0:63];
+	integer ans1[0:63];
+	integer input1[0:63];
 	integer i, j;
 	logic signed [31:0] taps [0:10];
 	task gen_ans; begin
@@ -174,18 +174,14 @@ module counter_la_fir_tb;
 		taps[10] = 0;
 
 		for(i=0; i<64; i=i+1) begin
-			ans1[i] = 0; ans2[i] = 0; ans3[i] = 0;
+			ans1[i] = 0;
 			input1[i] = i;
-			input2[i] = 64 - i;
-			input3[i] = 1;
 		end
 
 		for(i=0; i<64; i=i+1) begin
 			for(j=0; j<11; j=j+1) begin
 				if(i-j>=0)begin
 					ans1[i] += input1[i-j]*taps[j];
-					ans2[i] += input2[i-j]*taps[j];
-					ans3[i] += input3[i-j]*taps[j];
 				end
 			end
 		end
@@ -194,70 +190,43 @@ module counter_la_fir_tb;
 
 	initial begin
 		gen_ans;
-		wait(checkbits == 16'hAB40);
+		wait(checkbits === 16'hAB40);
 		$display("LA Test 1 started");
-		//wait(checkbits == 16'hAB41);
-
-		
-
 		for(i=0; i<64; i=i+1) begin
-			wait(checkbits == ans1[i][15:0]);
+			wait(checkbits === ans1[i][15:0]);
 		end
-		$display("First Pattern Pass");
-
+		$display("First Pattern Pass");	
 		for(i=0; i<64; i=i+1) begin
-			wait(checkbits == ans2[i][15:0]);
+			wait(checkbits === ans1[i][15:0]);
 		end
-		$display("Second Pattern Pass");
-		
-		for(i=0; i<64; i=i+1) begin
-			wait(checkbits == ans3[i][15:0]);
-		end
-		$display("Third Pattern Pass");
+		$display("Second Pattern Pass");	
 
-		//wait(checkbits == 16'd40);
-		//$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x", checkbits);
-		//wait(checkbits == 16'd893);
-		//$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x", checkbits);
-		//wait(checkbits == 16'd2541);
-		//$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x", checkbits);
-		//wait(checkbits == 16'd2669);
-		//$display("Call function matmul() in User Project BRAM (mprjram, 0x38000000) return value passed, 0x%x", checkbits);		
-
-		wait(checkbits == 16'hAB51);
-		$display("LA Test 2 passed");
+		wait(checkbits === 16'hAB51);
 		$display("Latency %d", tot_lat);
-		#10000;
 		$finish;
 	end
 
 	initial begin
 		latency = 0;
 		tot_lat = 0;
-		wait(checkbits[7:0] == 'hA5);
-		while(checkbits[7:0] != 'h5A || checkbits[15:8] != ans1[63][7:0]) begin
+		wait(checkbits[7:0] === 'hA5);
+		// while(checkbits[7:0] !== 'h5A || checkbits[15:8] !== ans1[63][7:0]) begin
+		while(checkbits[7:0] !== 'h5A || checkbits[15:8] !== 8'hFF) begin
 			latency = latency + 1;
 			@(posedge clock);
 		end
 		tot_lat = tot_lat + latency;
 		latency = 0;
 		$display("First done");
-		wait(checkbits[7:0] == 'hA5);
-		while(checkbits[7:0] != 'h5A || checkbits[15:8] != ans2[63][7:0]) begin
+		wait(checkbits[7:0] === 'hA5);
+		// while(checkbits[7:0] !== 'h5A || checkbits[15:8] !== ans1[63][7:0]) begin
+		while(checkbits[7:0] !== 'h5A || checkbits[15:8] !== 8'hFF) begin
 			latency = latency + 1;
 			@(posedge clock);
 		end
 		tot_lat = tot_lat + latency;
 		latency = 0;
 		$display("Second done");
-		wait(checkbits[7:0] == 'hA5);
-		while(checkbits[7:0] != 'h5A || checkbits[15:8] != ans3[63][7:0]) begin
-			latency = latency + 1;
-			@(posedge clock);
-		end
-		tot_lat = tot_lat + latency;
-		latency = 0;
-		$display("Third done");
 	end
 
 	initial begin

@@ -143,25 +143,29 @@ extern uint32_t flashio_worker_end;
 #define reg_user_irq_enable	(*(volatile uint32_t*) CSR_USER_IRQ_ENA_OUT_ADDR)
 
 // fir input X[n]
-#define inputsignal        (*(volatile uint32_t*)0x30000080)
+#define inputsignal        (*(volatile uint32_t*)0x31000080)
 // fir output Y[n]
-#define outputsignal      (*(volatile uint32_t*)0x30000084)
+#define outputsignal      (*(volatile uint32_t*)0x31000084)
 // taps[n]
-#define tap_1      (*(volatile uint32_t*)0x30000040)
-#define tap_2      (*(volatile uint32_t*)0x30000044)
-#define tap_3      (*(volatile uint32_t*)0x30000048)
-#define tap_4      (*(volatile uint32_t*)0x3000004c)
-#define tap_5      (*(volatile uint32_t*)0x30000050)
-#define tap_6      (*(volatile uint32_t*)0x30000054)
-#define tap_7      (*(volatile uint32_t*)0x30000058)
-#define tap_8      (*(volatile uint32_t*)0x3000005c)
-#define tap_9      (*(volatile uint32_t*)0x30000060)
-#define tap_10     (*(volatile uint32_t*)0x30000064)
-#define tap_11     (*(volatile uint32_t*)0x30000068)
+#define tap_1      (*(volatile uint32_t*)0x31000040)
+#define tap_2      (*(volatile uint32_t*)0x31000044)
+#define tap_3      (*(volatile uint32_t*)0x31000048)
+#define tap_4      (*(volatile uint32_t*)0x3100004c)
+#define tap_5      (*(volatile uint32_t*)0x31000050)
+#define tap_6      (*(volatile uint32_t*)0x31000054)
+#define tap_7      (*(volatile uint32_t*)0x31000058)
+#define tap_8      (*(volatile uint32_t*)0x3100005c)
+#define tap_9      (*(volatile uint32_t*)0x31000060)
+#define tap_10     (*(volatile uint32_t*)0x31000064)
+#define tap_11     (*(volatile uint32_t*)0x31000068)
 // data length
-#define datalength (*(volatile uint32_t*)0x30000010)
+#define datalength (*(volatile uint32_t*)0x31000010)
 // status
-#define status     (*(volatile uint32_t*)0x30000000)
+#define status     (*(volatile uint32_t*)0x31000000)
+// start addr to DMA
+#define r_start_addr (*(volatile uint32_t*)0x31000014)
+#define w_start_addr (*(volatile uint32_t*)0x31000018)
+
 
 
 // Debug reg DEBUG_ON

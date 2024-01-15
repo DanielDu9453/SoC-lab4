@@ -14,8 +14,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 `default_nettype none
-`include "/home/ubuntu/lab-caravel_fir/rtl/user/fir.v"
-`include "/home/ubuntu/lab-caravel_fir/rtl/user/bram11.v"
+`include "/home/ubuntu/final_project/lab-caravel_fir/rtl/user/fir.v"
+`include "/home/ubuntu/final_project/lab-caravel_fir/rtl/user/dma.v"
+`include "/home/ubuntu/final_project/lab-caravel_fir/rtl/user/bram11.v"
 
 /*
  *-------------------------------------------------------------
@@ -115,6 +116,14 @@ module user_proj_example #(
     wire [11:0] araddr;
     wire rvalid;
     wire [31:0] rdata;
+	
+	// DMA config
+    wire dma_en;
+	wire [31:0] r_start_addr;
+	wire [31:0] w_start_addr;
+	wire [31:0] read_len;
+	// wire dma_write_en;
+	wire dma_busy;
 
     // AXI stream
     wire ss_tvalid; 
@@ -131,7 +140,7 @@ module user_proj_example #(
         wbs_ack_o = 0;
         wbs_dat_o = 0;
         if(wbs_cyc_i && wbs_stb_i) begin
-            if(wbs_adr_i[31:24] == 'h30) begin
+            if(wbs_adr_i[31:24] == 'h31) begin
                 wbs_ack_o = wbs_ack_o_fir;
                 wbs_dat_o = wbs_dat_o_fir;
             end
@@ -142,7 +151,7 @@ module user_proj_example #(
         end
     end
 
-    WB_to_User_Bram w_bto_userbram_u (
+    WB_to_User_Bram wb_to_userbram_u (
          .wb_clk_i(wb_clk_i),
          .wb_rst_i(wb_rst_i),
          .wbs_stb_i(wbs_stb_i),
@@ -152,8 +161,25 @@ module user_proj_example #(
          .wbs_dat_i(wbs_dat_i),
          .wbs_adr_i(wbs_adr_i),
          .wbs_ack_o(wbs_ack_o_user),
-         .wbs_dat_o(wbs_dat_o_user)
-
+         .wbs_dat_o(wbs_dat_o_user),
+		 
+		 // DMA signals
+         .dma_en(dma_en),
+		 .r_start_addr(r_start_addr),
+		 .w_start_addr(w_start_addr),
+		 .read_len(read_len),
+		 // .dma_write_en(dma_write_en),
+		 .dma_busy(dma_busy),
+		 
+		 .sm_tready(sm_tready), 
+		 .sm_tvalid(sm_tvalid), 
+		 .sm_tdata(sm_tdata), 
+		 .sm_tlast(sm_tlast), 
+		 
+		 .ss_tlast(ss_tlast),
+		 .ss_tdata(ss_tdata),
+		 .ss_tvalid(ss_tvalid),
+		 .ss_tready(ss_tready)
     );
 
     WBToAXI wbtoaxi_u (
@@ -182,19 +208,7 @@ module user_proj_example #(
         .arvalid(arvalid),
         .araddr(araddr),
         .rvalid(rvalid),
-        .rdata(rdata),
-
-        // AXI stream
-        .ss_tvalid(ss_tvalid), 
-        .ss_tdata(ss_tdata), 
-        .ss_tlast(ss_tlast), 
-        .ss_tready(ss_tready), 
-
-        .sm_tready(sm_tready), 
-        .sm_tvalid(sm_tvalid), 
-        .sm_tdata(sm_tdata), 
-        .sm_tlast(sm_tlast)
-
+        .rdata(rdata)
     );
 
     fir fir_1(
@@ -212,7 +226,15 @@ module user_proj_example #(
         .araddr(araddr),
         .rvalid(rvalid),
         .rdata(rdata),
-
+		
+		// DMA config
+        .dma_en(dma_en),
+		.r_start_addr(r_start_addr),
+		.w_start_addr(w_start_addr),
+		.read_len(read_len),
+		// .dma_write_en(dma_write_en),
+		.dma_busy(dma_busy),
+		
         // AXI stream
         .ss_tvalid(ss_tvalid), 
         .ss_tdata(ss_tdata), 
@@ -241,7 +263,7 @@ module user_proj_example #(
         .axis_clk(wb_clk_i),
         .axis_rst_n(!wb_rst_i)
     );
-
+	
 
     bram11 data_ram (
         .clk(wb_clk_i),
@@ -300,18 +322,18 @@ module WBToAXI(
     output reg arvalid,
     output reg [11:0] araddr,
     input rvalid,
-    input [31:0] rdata,
+    input [31:0] rdata
 
     // AXI stream
-    output reg ss_tvalid, 
-    output reg [31:0] ss_tdata, 
-    output reg ss_tlast, 
-    input ss_tready, 
+    // output reg ss_tvalid, 
+    // output reg [31:0] ss_tdata, 
+    // output reg ss_tlast, 
+    // input ss_tready, 
 
-    output reg sm_tready, 
-    input sm_tvalid, 
-    input [31:0] sm_tdata, 
-    input sm_tlast 
+    // output reg sm_tready, 
+    // input sm_tvalid, 
+    // input [31:0] sm_tdata, 
+    // input sm_tlast 
 );
 
 reg wbs_ack_o;
@@ -321,7 +343,7 @@ reg aw_handshaked;
 reg w_handshaked;
 reg ar_handshaked;
 
-assign fir_valid = (wbs_stb_i == 1 && wbs_cyc_i == 1 && wbs_adr_i[31:24] == 'h30);
+assign fir_valid = (wbs_stb_i == 1 && wbs_cyc_i == 1 && wbs_adr_i[31:24] == 'h31);
 assign fir_axil = wbs_adr_i[7] == 0;
 
 always@(posedge wb_clk_i or posedge wb_rst_i)begin
@@ -402,23 +424,23 @@ end
     // output ss_tlast, 
     // input ss_tready, 
 
-always@(*) begin
-    if(fir_valid && !fir_axil && wbs_adr_i[7:0] == 'h80) begin
-        // ss_tvalid
-        ss_tvalid = wbs_we_i;
+// always@(*) begin
+    // if(fir_valid && !fir_axil && wbs_adr_i[7:0] == 'h80) begin
+        // // ss_tvalid
+        // ss_tvalid = wbs_we_i;
 
-        // ss_tdata
-        ss_tdata = wbs_dat_i;
+        // // ss_tdata
+        // ss_tdata = wbs_dat_i;
 
-        // ss_tlast
-        ss_tlast = 1;
+        // // ss_tlast
+        // ss_tlast = 1;
 
-    end else begin
-        ss_tvalid   = 0;
-        ss_tdata    = 0;
-        ss_tlast    = 0;
-    end
-end
+    // end else begin
+        // ss_tvalid   = 0;
+        // ss_tdata    = 0;
+        // ss_tlast    = 0;
+    // end
+// end
 
 // AXI stream sm 
     // output sm_tready, 
@@ -426,15 +448,15 @@ end
     // input [31:0] sm_tdata, 
     // input sm_tlast, 
 
-always@(*) begin
-    if(fir_valid && !fir_axil && wbs_adr_i[7:0] == 'h84) begin
-        // sm_tready
-        sm_tready = 1;
+// always@(*) begin
+    // if(fir_valid && !fir_axil && wbs_adr_i[7:0] == 'h84) begin
+        // // sm_tready
+        // sm_tready = 1;
 
-    end else begin
-        sm_tready = 0;
-    end
-end
+    // end else begin
+        // sm_tready = 0;
+    // end
+// end
 
 // ack to wb and wbs_dat_o
 always@(*) begin
@@ -442,15 +464,16 @@ always@(*) begin
 
     if(fir_valid && fir_axil)
         wbs_dat_o = rdata;
-    else if(fir_valid && !fir_axil && wbs_adr_i[7:0] == 'h84)
-        wbs_dat_o = sm_tdata;
+    // else if(fir_valid && !fir_axil && wbs_adr_i[7:0] == 'h84)
+        // wbs_dat_o = sm_tdata;
 
+    // wbs_ack_o = ((w_handshaked == 1 && aw_handshaked == 1) 
+              // || (rready == 1 && rvalid == 1) 
+              // || (ss_tvalid == 1 && ss_tready == 1) 
+              // || (sm_tready == 1 && sm_tvalid == 1));
     wbs_ack_o = ((w_handshaked == 1 && aw_handshaked == 1) 
-              || (rready == 1 && rvalid == 1) 
-              || (ss_tvalid == 1 && ss_tready == 1) 
-              || (sm_tready == 1 && sm_tvalid == 1));
+              || (rready == 1 && rvalid == 1));
 end
-
 
 
 endmodule
@@ -459,7 +482,6 @@ module WB_to_User_Bram #(
     parameter BITS = 32,
     parameter DELAYS=10
 )(
-
     // Wishbone Slave ports (WB MI A)
     input wb_clk_i,
     input wb_rst_i,
@@ -470,38 +492,88 @@ module WB_to_User_Bram #(
     input [31:0] wbs_dat_i,
     input [31:0] wbs_adr_i,
     output wbs_ack_o,
-    output [31:0] wbs_dat_o
-
+    output [31:0] wbs_dat_o,
+	
+	// to DMA signals
+    // input config for telling where and how many to fetch
+    input wire dma_en,
+    input wire [(BITS-1):0]  r_start_addr,
+    input wire [(BITS-1):0]  w_start_addr,
+    input wire [(BITS-1):0]  read_len,
+    // 1 for write to user_bram, 0 for read from user_bram
+    // input wire                      dma_write_en, 
+	// DMA status
+	output wire 					dma_busy,
+    // Memory -> DMA buffer
+    output wire                     sm_tready, 
+    input  wire                     sm_tvalid, 
+    input  wire [(BITS-1):0] sm_tdata, 
+    input  wire                     sm_tlast, 
+    // DMA buffer -> output interface 
+    output wire                     ss_tlast,
+    output wire [(BITS-1):0]        ss_tdata,
+    output wire                     ss_tvalid,
+    input  wire                     ss_tready
 );
     wire clk;
     wire rst;
 
     reg [3:0] counter;
     reg valid;
-    wire [31:0] data_out;
-    reg [31:0] wbs_dat_o;
+    reg  [31:0] wbs_dat_o;
     reg ack;
-    wire [3:0] write_en;
+	
+	// wishbone to user_bram
+    wire [3:0]  wb_write_en;
+    wire [31:0] wb_address;
+    wire [31:0] wb_data_in;
+    wire [31:0] wb_data_out;
+    wire to_user_bram;
+	
+	// dma to user_bram
+    wire [3:0]  dma_write_en;
+    wire [31:0] dma_address;
+    wire [31:0] dma_data_in;
+    wire [31:0] dma_data_out;
+	
+	// user_bram_priority arbitrator
+	reg wb_or_dma; // 1 for dma, 0 for wb
+    wire [3:0]  write_en;
     wire [31:0] address;
     wire [31:0] data_in;
-    wire to_user_bram;
-
-    assign clk = wb_clk_i;
-    assign rst = wb_rst_i;
+    wire [31:0] data_out;
+	
+	always@(posedge clk or negedge rst) begin
+		if(rst) wb_or_dma <= 0;
+		else begin
+			if(((wbs_cyc_i == 0) || (wbs_stb_i == 0)) && dma_busy == 1) begin
+				wb_or_dma <= 1;
+			end
+			else if(dma_busy == 0) begin
+				wb_or_dma <= 0;
+			end
+			else begin
+				wb_or_dma <= wb_or_dma;
+			end
+		end
+	end
+	
+    assign clk          = wb_clk_i;
+    assign rst          = wb_rst_i;
     assign to_user_bram = (wbs_cyc_i && wbs_stb_i && wbs_adr_i[31:24] == 8'h38);
-    assign write_en = to_user_bram ? {4{wbs_we_i}} & wbs_sel_i : 4'b0000;
-    assign address = to_user_bram ? (wbs_adr_i-32'h38000000)>>2 : 32'h0;
-    assign data_in = to_user_bram ? wbs_dat_i : 32'h0;
-    assign wbs_ack_o = ack;
+    assign wb_write_en  = to_user_bram ? {4{wbs_we_i}} & wbs_sel_i : 4'b0000;
+    assign wb_address   = to_user_bram ? (wbs_adr_i - 32'h38000000) >> 2 : 32'h0;
+    assign wb_data_in   = to_user_bram ? wbs_dat_i : 32'h0;
+    assign wbs_ack_o    = ack;
 
     always @(posedge clk or posedge rst) begin
         if(rst) begin
             counter <= 0;
         end
         else begin
-            if(wbs_ack_o) counter <= 0;
-            else if(to_user_bram) counter <= counter + 1;
-            else counter <= 0;
+            if(wbs_ack_o)           counter <= 0;
+            else if(to_user_bram)   counter <= counter + 1;
+            else                    counter <= 0;
         end
     end
 
@@ -510,7 +582,10 @@ module WB_to_User_Bram #(
             ack <= 0;
         end
         else begin
-            if(counter == DELAYS + 2) ack <= 1;
+            if(!wb_or_dma) begin
+                if(counter == DELAYS - 1)   ack <= 1;
+                else                        ack <= 0;
+            end
             else ack <= 0;
         end
     end
@@ -520,11 +595,66 @@ module WB_to_User_Bram #(
             wbs_dat_o <= 0;
         end
         else begin
-            if(counter == DELAYS + 2) wbs_dat_o <= data_out;
-            else wbs_dat_o <= 0;
+            if(counter == DELAYS - 1)   wbs_dat_o <= wb_data_out;
+            else                        wbs_dat_o <= 0;
         end
     end
+	
+	DMA dma_u(
+		// system signals
+		.clk(clk),
+		.rst_n(!rst),
+		
+		// DMA config
+        .dma_valid(wb_or_dma),
+        .dma_en(dma_en),
+		.r_start_addr(r_start_addr),
+		.w_start_addr(w_start_addr),
+		.read_len(read_len),
+		
+		// .dma_write_en(dma_write_en),
+		.dma_busy(dma_busy),
+		
+        // AXI stream
+        .ss_tvalid(ss_tvalid), 
+        .ss_tdata(ss_tdata), 
+        .ss_tlast(ss_tlast), 
+        .ss_tready(ss_tready), 
 
+        .sm_tready(sm_tready), 
+        .sm_tvalid(sm_tvalid), 
+        .sm_tdata(sm_tdata), 
+        .sm_tlast(sm_tlast),
+		
+		// dma to user_bram interfece
+        .WE0(dma_write_en),
+        .Di0(dma_data_in),
+        .Do0(dma_data_out),
+        .A0(dma_address)
+	);
+
+    reg [31:0] dma_data_out_10T [0:(DELAYS-1)];
+    integer i;
+    always@(posedge clk, posedge rst) begin
+        if(rst) begin
+            for(i=0; i<DELAYS; i=i+1) begin
+                dma_data_out_10T[i] <= 0;
+            end
+        end else begin
+            dma_data_out_10T[DELAYS-1] <= (wb_or_dma == 1) ? data_out : 0;
+            for(i=0; i<(DELAYS-1); i=i+1) begin
+                dma_data_out_10T[i] <= dma_data_out_10T[i+1];
+            end
+        end
+    end
+	
+	assign write_en = (wb_or_dma == 1) ? dma_write_en : wb_write_en;
+	assign data_in 	= (wb_or_dma == 1) ? dma_data_in : wb_data_in;
+	assign address 	= (wb_or_dma == 1) ? dma_address : wb_address;
+    assign wb_data_out = (wb_or_dma == 0) ? data_out : 0;
+    // assign dma_data_out = (wb_or_dma == 1) ? data_out : 0;
+    assign dma_data_out = dma_data_out_10T[0];
+	
     bram user_bram (
         .CLK(clk),
         .WE0(write_en),
